@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>حاسبة أمبير السلك</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#b8612a">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="أمبير السلك">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: بسيط ومباشر، ثلاث خانات ورقم واحد
+   IDEA: لوحة قراءة جهاز قياس
+   PICTURE: رقم الأمبير الكبير بجانب مقطع السلك بلون معدنه
+   COLOUR and TYPE: نحاسي أو فضي حسب المعدن، فحمي، أبيض؛ IBM Plex Sans Arabic
+   LAYOUT: عنوان، خانات، النتيجة الكبيرة، ثم إعدادات مخفية */
+:root{color-scheme:light dark;--bg:light-dark(#f2f3f4,#121416);--card:light-dark(#fff,#1c1f22);--ink:light-dark(#16181b,#eceef0);--mute:light-dark(#5d636b,#9aa1a9);--line:light-dark(#dcdfe3,#2d3237);--m1:#c56f33;--m2:#8a4318;--ok:light-dark(#1f7a4d,#5fd39a);--bad:light-dark(#b3261e,#ff8a80)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+body.al{--m1:#7f8c97;--m2:#46515b}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
+.band{padding:clamp(22px,4vw,48px) max(5vw,16px)}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 18px}
+h2{font-size:19px;margin:0 0 12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.seg button{font:inherit;font-size:18px;font-weight:700;min-height:54px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--m1);border-color:var(--m1);color:#fff}
+.ins{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-weight:500;margin-bottom:6px}
+input,select{width:100%;font:inherit;font-size:17px;min-height:46px;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.ins input,.ins select{font-size:24px;font-weight:700;min-height:60px}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:3px solid var(--m1);outline-offset:1px}
+.hero{margin-top:18px;background:linear-gradient(135deg,var(--m1),var(--m2));color:#fff;border-radius:18px;padding:clamp(20px,4vw,34px);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px;align-items:center;transition:background .3s}
+.lbl{font-size:16px;opacity:.9}
+.big{font-size:clamp(64px,13vw,120px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:.3em;font-weight:500;margin-inline-start:8px}
+.lim{display:inline-block;margin-top:10px;background:rgba(0,0,0,.22);padding:5px 12px;border-radius:8px;font-size:15px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.kpis div{background:rgba(255,255,255,.13);border-radius:10px;padding:8px 10px}
+.kpis b{display:block;font-size:20px;white-space:nowrap}
+.kpis span{font-size:13px;opacity:.9}
+.hero svg{width:min(210px,100%);height:auto;justify-self:center}
+.why{color:var(--mute);margin:14px 0 0}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 16px;margin-top:14px}
+summary{cursor:pointer;font-weight:700;min-height:50px;display:flex;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px;padding:6px 0 16px}
+.hint{font-size:13px;color:var(--mute);margin-top:4px}
+.chk{display:flex;gap:10px;align-items:center;min-height:46px;font-weight:500}
+.chk input{width:22px;min-height:22px;accent-color:var(--m1)}
+table{width:100%;border-collapse:collapse;font-size:15px;margin-bottom:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:start;white-space:nowrap}
+.n{text-align:left;font-variant-numeric:tabular-nums}
+tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:700}
+.scroll{overflow-x:auto}
+.note{font-size:14px;color:var(--mute)}
+@media(max-width:640px){.hero{grid-template-columns:1fr}.hero svg{order:-1;width:130px}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:420px){.ins{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.hero{transition:none}}
+</style>
+</head>
+<body>
+<section class="band"><div class="wrap">
+ <h1>كم أمبير يتحمل السلك؟</h1>
+
+ <div class="seg" role="group" aria-label="نوع السلك">
+  <button type="button" id="mCu" aria-pressed="true">نحاس</button>
+  <button type="button" id="mAl" aria-pressed="false">ألمنيوم</button>
+ </div>
+ <div class="ins">
+  <div><label for="sz">قياس السلك (ملم²)</label><select id="sz"></select></div>
+  <div><label for="len">الطول (متر)</label><input id="len" type="number" inputmode="decimal" min="1" value="50"></div>
+ </div>
+
+ <div class="hero">
+  <div>
+   <div class="lbl">يتحمل ويوصل صافي</div>
+   <div class="big"><span id="rI">0</span><small>أمبير</small></div>
+   <div class="lim" id="rLim"></div>
+   <div class="kpis">
+    <div><b id="rV">–</b><span>الجهد الواصل</span></div>
+    <div><b id="rP">–</b><span>القدرة الواصلة</span></div>
+    <div><b id="rB">–</b><span>قاطع مناسب</span></div>
+   </div>
+  </div>
+  <svg viewBox="0 0 200 200" aria-hidden="true">
+   <defs>
+    <radialGradient id="g1" cx="38%" cy="35%"><stop offset="0" stop-color="#ffd2a8"/><stop offset=".5" stop-color="#d07a3c"/><stop offset="1" stop-color="#7a3a14"/></radialGradient>
+    <radialGradient id="g2" cx="38%" cy="35%"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b9c2ca"/><stop offset="1" stop-color="#5b6670"/></radialGradient>
+   </defs>
+   <circle cx="100" cy="104" r="94" fill="rgba(0,0,0,.25)"/>
+   <circle cx="100" cy="100" r="94" fill="#26292d" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
+   <g id="cores"></g>
+  </svg>
+ </div>
+ <p class="why" id="why"></p>
+
+ <details>
+  <summary>إعدادات إضافية (اختياري)</summary>
+  <div class="grid">
+   <div><label for="typ">نوع الكيبل</label><select id="typ"><option value="twin">سنكل — سلكين (حار + بارد) 220V</option><option value="four">ثري فيز — 3 حار + بارد 380V</option><option value="one">سلك مفرد — خط واحد 220V</option></select></div>
+   <div><label for="tmp" id="tmpL">حرارة الجو (°م)</label><input id="tmp" type="number" inputmode="decimal" value="40"><div class="hint">40 = داخل البيوت والجدران بالصيف. 50 لسطح أو مكان مكشوف بالظل</div></div>
+   <div><label class="chk"><input id="sun" type="checkbox"> ممدود تحت الشمس المباشرة</label><div class="hint">يضيف حوالي 15°م على حرارة السلك</div></div>
+   <div><label for="how">طريقة التمديد</label><select id="how"><option value="air">على الجدار / بالهواء</option><option value="pipe">داخل بوري</option><option value="soil">مدفون بالأرض</option></select></div>
+   <div><label for="ins">العازل</label><select id="ins"><option value="pvc">PVC (العادي)</option><option value="xlpe">XLPE</option></select></div>
+   <div><label for="vd">أقصى هبوط جهد (%)</label><input id="vd" type="number" inputmode="decimal" min="1" max="15" step="0.5" value="7"></div>
+  </div>
+ </details>
+
+ <details>
+  <summary>كل القياسات لنفس الطول</summary>
+  <div class="scroll"><table><thead><tr><th>القياس</th><th class="n">نحاس</th><th class="n">ألمنيوم</th></tr></thead><tbody id="all"></tbody></table></div>
+  <p class="note">حسب جداول IEC 60364-5-52 ومقاومة الموصل من IEC 60228. القياسات 0.5 و0.75 و1 ملم² قيمها للأسلاك المرنة، و400 فما فوق قيمها تقريبية. الألمنيوم ما ينصنع بقياس أصغر من 2.5 ملم². الحساب لسلك أو كيبل واحد مو ملتصق بكيبلات ثانية، وهو تقدير ما يغني عن مراجعة مهندس كهرباء بالأعمال الكبيرة.</p>
+ </details>
+ <p class="why" style="text-align:center;margin-top:22px"><a href="https://zivanu.com" style="color:inherit">← كل برامج Zivanu</a></p>
+</div></section>
+
+<script>
+{
+const S=[0.5,0.75,1,1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300,400,500,630];
+const RC=[36,24.5,18.1,12.1,7.41,4.61,3.08,1.83,1.15,0.727,0.524,0.387,0.268,0.193,0.153,0.124,0.0991,0.0754,0.0601,0.047,0.0366,0.0283];
+const RA=[0,0,0,0,11.8,7.41,4.94,3.08,1.91,1.2,0.868,0.641,0.443,0.32,0.253,0.206,0.164,0.125,0.1,0.0778,0.0605,0.0469];
+const C={pvc:{1:[3,6,10,19.5,27,36,46,63,85,112,138,168,213,258,299,344,392,461,530,619,714,829],3:[3,6,10,17.5,24,32,41,57,76,96,119,144,184,223,259,299,341,403,464,541,625,723]},
+ xlpe:{1:[3.6,7.2,12,24,33,45,58,80,107,138,171,209,269,328,382,441,506,599,693,805,928,1078],3:[3.6,7.2,12,22,30,40,52,71,96,119,147,179,229,278,322,371,424,500,576,671,775,897]}};
+const D={pvc:{1:[3,6,10,22,29,37,46,60,78,99,119,140,173,204,231,261,292,336,379,425,470,525],3:[3,6,10,18,24,30,38,50,64,82,98,116,143,169,192,217,243,280,316,355,395,440]}};
+D.xlpe={1:D.pvc[1].map(v=>v*1.18),3:D.pvc[3].map(v=>v*1.18)};
+// ألمنيوم PVC طريقة C (IEC) — وما عداها ≈ 0.78 من النحاس
+const AC={1:[0,0,0,0,21,28,36,49,66,83,103,125,160,195,226,261,298,352,406,483,557,647],3:[0,0,0,0,18.5,25,32,44,59,73,90,110,140,170,197,227,259,305,351,422,488,564]};
+const TA={pvc:[[10,1.22],[20,1.12],[25,1.06],[30,1],[35,.94],[40,.87],[45,.79],[50,.71],[55,.61],[60,.5],[65,.35],[70,0]],
+ xlpe:[[10,1.15],[20,1.08],[25,1.04],[30,1],[35,.96],[40,.91],[45,.87],[50,.82],[55,.76],[60,.71],[65,.65],[70,.58],[75,.5],[80,.41],[85,.29],[90,0]]};
+const TG={pvc:[[10,1.1],[20,1],[25,.95],[30,.89],[35,.84],[40,.77],[45,.71],[50,.63],[55,.55],[60,.45],[70,0]],
+ xlpe:[[10,1.07],[20,1],[25,.96],[30,.93],[35,.89],[40,.85],[45,.8],[50,.76],[55,.71],[60,.65],[70,.53],[80,.38],[90,0]]};
+const BR=[2,4,6,10,16,20,25,32,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000];
+const $=id=>document.getElementById(id);
+const f=(x,d=1)=>isFinite(x)?(+x).toLocaleString('en-US',{maximumFractionDigits:d}):'–';
+const lerp=(t,T)=>{if(t<=T[0][0])return T[0][1];for(let i=1;i<T.length;i++)if(t<=T[i][0]){const[a,b]=T[i-1],[c,d]=T[i];return b+(d-b)*(t-a)/(c-a)}return 0};
+let mat='cu';
+
+function calc(i,o,m){
+ if(m=='al'&&!RA[i])return null;
+ let base;
+ if(o.how=='soil')base=D[o.ins][o.ph][i]*(m=='al'?.77:1);
+ else base=(m=='al'?(o.ins=='pvc'?AC[o.ph][i]:C.xlpe[o.ph][i]*.78):C[o.ins][o.ph][i])*(o.how=='pipe'?(o.typ=='one'?.89:.85):1);
+ const tEff=o.how=='soil'?o.t:o.t+(o.sun?15:0);
+ const kt=lerp(tEff,(o.how=='soil'?TG:TA)[o.ins]);
+ const ith=base*kt, tmax=o.ins=='pvc'?70:90;
+ // مقاومة السلك على حرارته الفعلية بالحمل (مو على أقصى حرارة) — حساب واقعي بدون مبالغة
+ const X=.08/1000, pf=.85;
+ let T=tmax,z,ivd,I;
+ for(let k=0;k<4;k++){
+  const R=(m=='al'?RA[i]*(1+.00403*(T-20)):RC[i]*(1+.00393*(T-20)))/1000;
+  z=(o.ph==1?2:Math.sqrt(3))*o.L*(R*pf+X*Math.sqrt(1-pf*pf));
+  ivd=o.V*o.vd/100/z; I=Math.min(ith,ivd);
+  T=ith>0?tEff+(tmax-tEff)*(I/ith)**2:tmax;
+ }
+ return{ith,ivd,kt,tEff,I,z};
+}
+
+function fillSizes(){
+ const cur=+$('sz').value;
+ $('sz').innerHTML=S.map((s,i)=>`<option value="${i}"${mat=='al'&&!RA[i]?' disabled':''}>${s}</option>`).join('');
+ let v=isNaN(cur)?7:cur; if(mat=='al'&&!RA[v])v=4; $('sz').value=v;
+}
+
+const ids=['sz','len','typ','tmp','sun','how','ins','vd'];
+function run(){
+ const typ=$('typ').value;
+ const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:typ=='four'?3:1,ins:$('ins').value,how:$('how').value,
+  t:+$('tmp').value||0,sun:$('sun').checked&&$('how').value!='soil',vd:Math.max(.5,+$('vd').value||5)};
+ o.V=o.ph==1?220:380;
+ $('tmpL').textContent=o.how=='soil'?'حرارة التربة (°م)':'حرارة الجو (°م)';
+ document.body.classList.toggle('al',mat=='al');
+ $('mCu').setAttribute('aria-pressed',mat=='cu');$('mAl').setAttribute('aria-pressed',mat=='al');
+ try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc3',JSON.stringify(s))}catch(e){}
+
+ const r=calc(o.i,o,mat); if(!r)return;
+ const I=r.I, dv=I*r.z, Ve=o.V-dv;
+ const P=(o.ph==1?1:Math.sqrt(3))*Ve*I*.85/1000;
+ const br=BR.filter(b=>b<=I).pop();
+ $('rI').textContent=f(I,1);
+ $('rLim').textContent=r.ith<=0?'الحرارة أعلى من تحمل العازل':r.ith<=r.ivd?'محدود بحرارة السلك':'محدود بطول السلك';
+ $('rV').textContent=f(Ve,0)+' V';
+ $('rP').textContent=f(P,1)+' kW';
+ $('rB').textContent=br?br+' A':'–';
+ $('why').textContent=`${mat=='cu'?'نحاس':'ألمنيوم'} ${S[o.i]} ملم² بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`;
+
+ const pos={one:[[100,100]],twin:[[58,100],[142,100]],four:[[64,64],[136,64],[64,136],[136,136]]}[typ];
+ const col={one:['#8b5a2b'],twin:['#8b5a2b','#2f6fb3'],four:['#8b5a2b','#111','#8d9399','#2f6fb3']}[typ];
+ const rm={one:66,twin:34,four:28}[typ], rc=rm*(.35+.65*Math.sqrt(S[o.i]/630)), g=mat=='cu'?'g1':'g2';
+ $('cores').innerHTML=pos.map((p,j)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${(rc*1.2+5).toFixed(1)}" fill="${col[j]}"/><circle cx="${p[0]}" cy="${p[1]}" r="${rc.toFixed(1)}" fill="url(#${g})"/>`).join('');
+
+ $('all').innerHTML=S.map((s,i)=>{const a=calc(i,o,'cu'),b=calc(i,o,'al');return`<tr class="${i==o.i?'sel':''}"><td>${s} ملم²</td><td class="n">${f(a.I,1)} A</td><td class="n">${b?f(b.I,1)+' A':'—'}</td></tr>`}).join('');
+}
+
+try{const s=JSON.parse(localStorage.getItem('ampCalc3')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
+if(!$('sz').options.length)fillSizes();
+$('mCu').addEventListener('click',()=>{mat='cu';fillSizes();run()});
+$('mAl').addEventListener('click',()=>{mat='al';fillSizes();run()});
+ids.forEach(k=>$(k).addEventListener('input',run));
+run();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

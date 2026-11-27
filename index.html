@@ -68,6 +68,8 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
 .typ{font-size:19px;font-weight:700;min-height:54px}
 .needR{margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);font-size:16px}
 .needR b{font-size:20px}
+.vline{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);font-weight:500}
+.vline.ok b{color:var(--ok)}.vline.mid b{color:light-dark(#a15c00,#ffb74d)}.vline.bad b{color:var(--bad)}
 .needR .ok{color:var(--ok);font-weight:700}.needR .bad{color:var(--bad);font-weight:700}
 .needR button{font:inherit;font-size:15px;min-height:40px;margin-top:8px;padding:4px 14px;border-radius:10px;border:0;background:var(--m1);color:#fff;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.hero{transition:none}}
@@ -255,7 +257,14 @@ function run(){
   const nm=mat=='cu'?'نحاس':'ألمنيوم';
   let h=I>=need?`<span class="ok">✓ السلك الحالي (${S[o.i]} ملم²) يكفي حملك</span><br>`:`<span class="bad">✗ السلك الحالي (${S[o.i]} ملم²) ما يكفي ${f(need,1)} أمبير</span><br>`;
   h+=mn>=0?`أصغر سلك ${nm} يكفي ${f(need,1)} أمبير على ${f(o.L,0)} متر: <b>${S[mn]} ملم²</b>`+(mn!=o.i?`<br><button type="button" data-i="${mn}">اختار ${S[mn]} ملم²</button>`:''):'ماكو قياس منفرد يكفي، استخدم كيبلين بالتوازي أو قلل الطول.';
-  nr.innerHTML=h; nr.hidden=false;
+  // الفولت الواصل لو سحبت هذا الحمل على السلك الحالي
+  const p3=o.ph==3, dvN=need*r.z, vN=(o.V-dvN)/(p3?Math.sqrt(3):1), pct=dvN/o.V*100;
+  const cls=pct<=o.vd?'ok':pct<=10?'mid':'bad';
+  let vl=`<div class="vline ${cls}">إذا سحبت ${f(need,1)} أمبير${p3?' على كل فيز':''} على هذا السلك (${S[o.i]} ملم² · ${f(o.L,0)} متر):<br>الفولت يوصل <b>${f(Math.max(vN,0),0)} V</b>${p3?' لكل فيز':''} — هبوط ${f(pct,1)}%`;
+  vl+=cls=='ok'?' ✓ ضمن المسموح':cls=='mid'?' — مقبول للإنارة، ومو زين للمكيفات والمواطير':' — ⚠ يضر الأجهزة';
+  if(need>r.ith)vl+=`<br>⚠ وفوكها السلك يسخن، لأن أقصى حمل حراري له ${f(r.ith,1)} أمبير`;
+  vl+='</div>';
+  nr.innerHTML=vl+h; nr.hidden=false;
  }else nr.hidden=true;
  $('why').textContent=`${mat=='cu'?'نحاس':'ألمنيوم'} ${S[o.i]} ملم² بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`;
 

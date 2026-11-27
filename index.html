@@ -97,7 +97,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
  <div class="hint" id="typH"></div>
  <div class="ins" id="alRow" style="margin-top:12px" hidden>
   <div><label for="org">المنشأ</label><select id="org"><option value="tr">ظفيرة تركي</option><option value="sa">ظفيرة سعودي</option><option value="cn">ظفيرة صيني</option></select></div>
-  <div id="cnBox"><label for="cnp">المقطع الحقيقي من المكتوب %</label><input id="cnp" type="number" inputmode="decimal" min="20" max="100" value="60"></div>
+  <div id="cnBox"><label for="cnp">المقطع الحقيقي من المكتوب %</label><input id="cnp" type="number" inputmode="decimal" min="20" max="100" value="80"></div>
  </div>
  <div class="ins" id="bcRow" style="margin-top:12px">
   <div><label for="brand">الماركة</label><select id="brand"></select></div>
@@ -201,8 +201,8 @@ const FX={1:[3,6,10,16,25,32],3:[3,6,10,16,20,25]};
 function calc(i,o,m){
  if(m=='al'){
   if(i<0||i>=ALS.length||(o.ph==1&&ALS[i]>50))return null;
-  // الصيني: المقطع الحقيقي أقل من المكتوب، فنحسب الأمبير على المقطع الحقيقي (log-log بين قيم الجدول) والمقاومة تزيد بنفس النسبة
-  const k=o.org=='cn'?o.cnp/100:1, A=ALS[i]*k;
+  // الظفيرة المستوردة بالعراق مقطعها الحقيقي أقل من المكتوب (افتراضياً تركي/سعودي 80%، صيني 60%)، فنحسب الأمبير على المقطع الحقيقي (log-log بين قيم الجدول) والمقاومة تزيد بنفس النسبة
+  const k=o.cnp/100, A=ALS[i]*k;
   let a0;
   if(k==1)a0=ALA[i];
   else{let j=ALS.findIndex(x=>x>=A);if(j<=0)j=1;const x1=Math.log(ALS[j-1]),x2=Math.log(ALS[j]),y1=Math.log(ALA[j-1]),y2=Math.log(ALA[j]);a0=Math.exp(y1+(y2-y1)*(Math.log(A)-x1)/(x2-x1));}
@@ -272,16 +272,16 @@ function run(){
  fillSizes(); const typ=$('typ').value; brands();
  const bt=BRD[grp(typ)][+$('brand').value||0][1];
  const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:TY[typ][0],cond:$('cond').value,ins:bt==90?'xlpe':bt==70?'pvc':$('ins').value,how:mat=='al'?'air':$('how').value,
-  org:$('org').value,cnp:Math.min(100,Math.max(20,+$('cnp').value||60)),
+  org:$('org').value,cnp:Math.min(100,Math.max(20,+$('cnp').value||80)),
   t:+$('tmp').value||0,sun:$('sun').checked&&(mat=='al'||$('how').value!='soil'),vd:Math.max(.5,+$('vd').value||5)};
  o.V=o.ph==1?220:380;
  const gc=($('brand').options[$('brand').value]||{}).textContent||'';
  $('typH').textContent=TY[typ][4]+(o.ph==3?' (3 × 220V)':' (220V)')+(mat=='cu'&&gc.includes('GCCI')&&/^cab|^nym/.test(typ)&&(S[o.i]<1.5||S[o.i]>25)?' ⚠ كيبل GCCI ينصنع من 1.5 إلى 25 ملم² فقط.':'');
  $('tmpL').textContent=o.how=='soil'?'حرارة التربة (°م)':'حرارة الجو (°م)';
  document.body.classList.toggle('al',mat=='al');
- $('bcRow').hidden=mat=='al'; $('alRow').hidden=mat!='al'; $('cnBox').hidden=$('org').value!='cn';
+ $('bcRow').hidden=mat=='al'; $('alRow').hidden=mat!='al';
  $('mCu').setAttribute('aria-pressed',mat=='cu');$('mAl').setAttribute('aria-pressed',mat=='al');
- try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc7',JSON.stringify(s))}catch(e){}
+ try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc8',JSON.stringify(s))}catch(e){}
 
  const r=calc(o.i,o,mat); if(!r)return;
  const I=r.I, dv=I*r.z, Ve=o.V-dv;
@@ -312,7 +312,7 @@ function run(){
   vl+='</div>';
   nr.innerHTML=vl+h; nr.hidden=false;
  }else nr.hidden=true;
- $('why').textContent=`${mat=='cu'?'نحاس':'ظفيرة'} ${lbl(o.i,o.ph)} بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`+(r.real?` الظفيرة الصينية حسبناها على مقطعها الحقيقي تقريباً ${f(r.real,1)} ملم².`:'');
+ $('why').textContent=`${mat=='cu'?'نحاس':'ظفيرة'} ${lbl(o.i,o.ph)} بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`+(r.real?` حسبنا الظفيرة على مقطعها الحقيقي تقريباً ${f(r.real,1)} ملم² (${f(o.cnp,0)}% من المكتوب).`:'');
 
  const nc=TY[typ][3];
  const pos=nc==1?[[100,100]]:nc==2?[[58,100],[142,100]]:nc==7?[[100,100],...[0,1,2,3,4,5].map(k=>[100+48*Math.cos(k*Math.PI/3),100+48*Math.sin(k*Math.PI/3)])]
@@ -325,10 +325,11 @@ function run(){
  $('all').innerHTML=SZ().map((s,i)=>{const a=calc(i,o,mat);return`<tr class="${i==o.i?'sel':''}"><td>${lbl(i,o.ph)}</td><td class="n">${a?f(a.I,1)+' A':'—'}</td></tr>`}).join('');
 }
 
-try{const s=JSON.parse(localStorage.getItem('ampCalc7')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(!TY[$('typ').value])$('typ').value=mat=='al'?'abc4':'cab2';brands();if(s.brand!=null)$('brand').value=s.brand;if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
+try{const s=JSON.parse(localStorage.getItem('ampCalc8')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(!TY[$('typ').value])$('typ').value=mat=='al'?'abc4':'cab2';brands();if(s.brand!=null)$('brand').value=s.brand;if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
 if(!$('sz').options.length)fillSizes();
 $('mCu').addEventListener('click',()=>{if(mat!='cu'){mat='cu';$('sun').checked=false;}fillSizes();run()});
 $('mAl').addEventListener('click',()=>{if(mat!='al'){mat='al';$('sun').checked=true;}fillSizes();run()});
+$('org').addEventListener('input',()=>{$('cnp').value=$('org').value=='cn'?60:80});
 ids.forEach(k=>$(k).addEventListener('input',run));
 run();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});

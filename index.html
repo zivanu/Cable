@@ -247,7 +247,7 @@ function run(){
  $('rP').textContent=f(P,1)+' kW';
  $('rIu').textContent=o.ph==3?'أمبير لكل فيز':'أمبير';
  const ps=$('phs'); ps.hidden=o.ph!=3;
- if(o.ph==3)ps.innerHTML=['الأحمر','الأصفر','الأزرق'].map((c,k)=>`<div><span>فيز ${k+1} (${c})</span><b>${f(I,1)} A</b></div>`).join('')+`<p>كل فيز يشيل ${f(I,1)} أمبير لوحده، يعني تكدر توزع الحمل ${f(I,1)} على كل فيز. البارد (الأسود) ما ينحسب.</p>`;
+ if(o.ph==3)ps.innerHTML=[1,2,3].map(k=>`<div><span>فيز ${k}</span><b>${f(I,1)} A</b></div>`).join('');
  $('needL').textContent=o.ph==3?'حمل كل فيز بالأمبير (اختياري)':'حملك بالأمبير (اختياري)';
  $('rPl').textContent=o.ph==3?'القدرة الكلية (3 خطوط)':'القدرة الواصلة';
  $('rB').textContent=br?br+' A'+(o.ph==3?' × 3':''):'–';

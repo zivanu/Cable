@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>حاسبة أمبير السلك</title>
+<title>الكهربجي — حاسبة الأسلاك</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#b8612a">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="أمبير السلك">
+<meta name="apple-mobile-web-app-title" content="الكهربجي">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /* VOICE: بسيط ومباشر، ثلاث خانات ورقم واحد
@@ -25,6 +25,9 @@ body.al{--m1:#7f8c97;--m2:#46515b}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
 .band{padding:clamp(22px,4vw,48px) max(5vw,16px)}
 .wrap{max-width:900px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.brand img{border-radius:10px;width:40px;height:40px}
+.brand b{display:block;font-size:20px;line-height:1.1}.brand span{font-size:13px;color:var(--mute)}
 h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 18px}
 h2{font-size:19px;margin:0 0 12px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
@@ -77,6 +80,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
 </head>
 <body>
 <section class="band"><div class="wrap">
+ <div class="brand"><img src="/icon-192.png" alt="" width="40" height="40"><div><b>الكهربجي</b><span>حاسبة الأسلاك</span></div></div>
  <h1>كم أمبير يتحمل السلك؟</h1>
 
  <div class="seg" role="group" aria-label="نوع السلك">

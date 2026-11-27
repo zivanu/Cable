@@ -38,6 +38,10 @@ input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:3px 
 .lbl{font-size:16px;opacity:.9}
 .big{font-size:clamp(64px,13vw,120px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .big small{font-size:.3em;font-weight:500;margin-inline-start:8px}
+.phs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.phs div{background:rgba(255,255,255,.16);border-radius:10px;padding:8px 10px;text-align:center}
+.phs b{display:block;font-size:22px;white-space:nowrap}.phs span{font-size:13px}
+.phs p{grid-column:1/-1;margin:0;font-size:14px;opacity:.92}
 .lim{display:inline-block;margin-top:10px;background:rgba(0,0,0,.22);padding:5px 12px;border-radius:8px;font-size:15px}
 .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
 .kpis div{background:rgba(255,255,255,.13);border-radius:10px;padding:8px 10px}
@@ -93,7 +97,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
   <div><label for="len">الطول (متر)</label><input id="len" type="number" inputmode="decimal" min="1" value="50"></div>
  </div>
  <div class="need">
-  <label for="need">حملك بالأمبير (اختياري)</label>
+  <label for="need" id="needL">حملك بالأمبير (اختياري)</label>
   <input id="need" type="number" inputmode="decimal" min="0" placeholder="اكتب حملك ونطلعلك أصغر سلك يكفي">
   <div id="needR" class="needR" hidden></div>
  </div>
@@ -103,6 +107,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
    <div class="lbl">يتحمل ويوصل صافي</div>
    <div class="big"><span id="rI">0</span><small id="rIu">أمبير</small></div>
    <div class="lim" id="rLim"></div>
+   <div class="phs" id="phs" hidden></div>
    <div class="kpis">
     <div><b id="rV">–</b><span>الجهد الواصل</span></div>
     <div><b id="rP">–</b><span id="rPl">القدرة الواصلة</span></div>
@@ -240,7 +245,10 @@ function run(){
  $('rLim').textContent=r.ith<=0?'الحرارة أعلى من تحمل العازل':r.ith<=r.ivd?'محدود بحرارة السلك':'محدود بطول السلك';
  $('rV').textContent=f(o.ph==3?Ve/Math.sqrt(3):Ve,0)+' V'+(o.ph==3?' لكل خط':'');
  $('rP').textContent=f(P,1)+' kW';
- $('rIu').textContent=o.ph==3?'أمبير لكل خط':'أمبير';
+ $('rIu').textContent=o.ph==3?'أمبير لكل فيز':'أمبير';
+ const ps=$('phs'); ps.hidden=o.ph!=3;
+ if(o.ph==3)ps.innerHTML=['الأحمر','الأصفر','الأزرق'].map((c,k)=>`<div><span>فيز ${k+1} (${c})</span><b>${f(I,1)} A</b></div>`).join('')+`<p>كل فيز يشيل ${f(I,1)} أمبير لوحده، يعني تكدر توزع الحمل ${f(I,1)} على كل فيز. البارد (الأسود) ما ينحسب.</p>`;
+ $('needL').textContent=o.ph==3?'حمل كل فيز بالأمبير (اختياري)':'حملك بالأمبير (اختياري)';
  $('rPl').textContent=o.ph==3?'القدرة الكلية (3 خطوط)':'القدرة الواصلة';
  $('rB').textContent=br?br+' A'+(o.ph==3?' × 3':''):'–';
  const need=+$('need').value, nr=$('needR');
@@ -256,7 +264,7 @@ function run(){
  const nc=TY[typ][3];
  const pos=nc==1?[[100,100]]:nc==2?[[58,100],[142,100]]:nc==7?[[100,100],...[0,1,2,3,4,5].map(k=>[100+48*Math.cos(k*Math.PI/3),100+48*Math.sin(k*Math.PI/3)])]
   :[...Array(nc)].map((_,k)=>[100+44*Math.cos(-Math.PI/2+k*2*Math.PI/nc),100+44*Math.sin(-Math.PI/2+k*2*Math.PI/nc)]);
- const col={1:['#8b5a2b'],2:['#8b5a2b','#2f6fb3'],3:['#8b5a2b','#2f6fb3','#3e9a3e'],4:['#8b5a2b','#111','#8d9399','#2f6fb3'],5:['#8b5a2b','#111','#8d9399','#2f6fb3','#3e9a3e'],7:['#111','#555','#111','#555','#111','#555','#111']}[nc];
+ const col={1:['#8b5a2b'],2:['#8b5a2b','#2f6fb3'],3:['#8b5a2b','#2f6fb3','#3e9a3e'],4:['#c62828','#f2c200','#2f6fb3','#111'],5:['#c62828','#f2c200','#2f6fb3','#111','#3e9a3e'],7:['#111','#555','#111','#555','#111','#555','#111']}[nc];
  const rm={1:66,2:34,3:30,4:28,5:24,7:20}[nc], rc=rm*(.35+.65*Math.sqrt(S[o.i]/630)), g=mat=='cu'?'g1':'g2';
  $('cores').innerHTML=pos.map((p,j)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${(rc*1.2+5).toFixed(1)}" fill="${col[j]}"/><circle cx="${p[0]}" cy="${p[1]}" r="${rc.toFixed(1)}" fill="url(#${g})"/>`).join('');
 

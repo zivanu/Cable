@@ -160,9 +160,9 @@ function calc(i,o,m){
 }
 
 function fillSizes(){
- const cur=+$('sz').value;
+ const cur=$('sz').options.length?+$('sz').value:NaN;
  $('sz').innerHTML=S.map((s,i)=>`<option value="${i}"${mat=='al'&&!RA[i]?' disabled':''}>${s}</option>`).join('');
- let v=isNaN(cur)?7:cur; if(mat=='al'&&!RA[v])v=4; $('sz').value=v;
+ let v=isNaN(cur)?4:cur; if(mat=='al'&&!RA[v])v=4; $('sz').value=v;
 }
 
 const ids=['sz','len','typ','tmp','sun','how','ins','vd'];
@@ -174,7 +174,7 @@ function run(){
  $('tmpL').textContent=o.how=='soil'?'حرارة التربة (°م)':'حرارة الجو (°م)';
  document.body.classList.toggle('al',mat=='al');
  $('mCu').setAttribute('aria-pressed',mat=='cu');$('mAl').setAttribute('aria-pressed',mat=='al');
- try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc3',JSON.stringify(s))}catch(e){}
+ try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc4',JSON.stringify(s))}catch(e){}
 
  const r=calc(o.i,o,mat); if(!r)return;
  const I=r.I, dv=I*r.z, Ve=o.V-dv;
@@ -195,7 +195,7 @@ function run(){
  $('all').innerHTML=S.map((s,i)=>{const a=calc(i,o,'cu'),b=calc(i,o,'al');return`<tr class="${i==o.i?'sel':''}"><td>${s} ملم²</td><td class="n">${f(a.I,1)} A</td><td class="n">${b?f(b.I,1)+' A':'—'}</td></tr>`}).join('');
 }
 
-try{const s=JSON.parse(localStorage.getItem('ampCalc3')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
+try{const s=JSON.parse(localStorage.getItem('ampCalc4')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
 if(!$('sz').options.length)fillSizes();
 $('mCu').addEventListener('click',()=>{mat='cu';fillSizes();run()});
 $('mAl').addEventListener('click',()=>{mat='al';fillSizes();run()});

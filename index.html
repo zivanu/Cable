@@ -81,7 +81,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
   <optgroup label="سلك"><option value="one">سنكل — خط واحد</option></optgroup>
   <optgroup label="فلكس (مرن)"><option value="flex2">فلكس — خطين</option><option value="flex3">فلكس — 3 خطوط</option><option value="flex4">فلكس — 4 خطوط</option><option value="flex5">فلكس — 5 خطوط</option><option value="flex7">فلكس — 7 خطوط</option></optgroup>
   <optgroup label="سيمنز"><option value="nym2">سيمنز — خطين</option><option value="nym3">سيمنز — 3 خطوط</option></optgroup>
-  <optgroup label="كيبل"><option value="cab2" selected>كيبل — خطين</option><option value="cab3">كيبل — 3 خطوط</option><option value="cab4">كيبل — 4 خطوط (ثري فيز)</option></optgroup>
+  <optgroup label="كيبل"><option value="cab2" selected>كيبل — خطين (حار + بارد)</option><option value="cab4">كيبل — 4 خطوط (3 حار + بارد)</option></optgroup>
  </select>
  <div class="hint" id="typH"></div>
  <div class="ins" style="margin-top:12px">
@@ -170,7 +170,6 @@ const TY={one:[1,2,0,1,'سلك مفرد. الرجوع (البارد) سلك ثا
  nym2:[1,2,0,2,'سيمنز حار + بارد، للتمديدات الثابتة.'],
  nym3:[1,2,0,3,'سيمنز حار + بارد + أرضي. الأرضي ما يشيل حمل.'],
  cab2:[1,2,0,2,'كيبل حار + بارد.'],
- cab3:[1,2,0,3,'كيبل حار + بارد + أرضي. الأرضي ما يشيل حمل.'],
  cab4:[3,3,0,4,'كيبل ثري فيز: 3 حار + بارد. الرقم تيار كل طور.']};
 // الفلكس الصغير حسب جداول الأسلاك المرنة (BS 7671 4F3A) للقياسات 0.5–4، وفوكها ≈ 90% من الكيبل
 const FX={1:[3,6,10,16,25,32],3:[3,6,10,16,20,25]};
@@ -258,7 +257,7 @@ function run(){
  $('all').innerHTML=S.map((s,i)=>{const a=calc(i,o,'cu'),b=calc(i,o,'al');return`<tr class="${i==o.i?'sel':''}"><td>${s} ملم²</td><td class="n">${f(a.I,1)} A</td><td class="n">${b?f(b.I,1)+' A':'—'}</td></tr>`}).join('');
 }
 
-try{const s=JSON.parse(localStorage.getItem('ampCalc6')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});brands();if(s.brand!=null)$('brand').value=s.brand;if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
+try{const s=JSON.parse(localStorage.getItem('ampCalc6')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(!TY[$('typ').value])$('typ').value='cab2';brands();if(s.brand!=null)$('brand').value=s.brand;if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
 if(!$('sz').options.length)fillSizes();
 $('mCu').addEventListener('click',()=>{mat='cu';fillSizes();run()});
 $('mAl').addEventListener('click',()=>{mat='al';fillSizes();run()});

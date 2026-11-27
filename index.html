@@ -193,15 +193,12 @@ function calc(i,o,m){
  const tEff=o.how=='soil'?o.t:o.t+(o.sun?15:0);
  const kt=lerp(tEff,(o.how=='soil'?TG:TA)[o.ins]);
  const ith=base*kt, tmax=o.ins=='pvc'?70:90;
- // مقاومة السلك على حرارته الفعلية بالحمل (مو على أقصى حرارة) — حساب واقعي بدون مبالغة
- const X=.08/1000, pf=.85;
- let T=tmax,z,ivd,I;
- for(let k=0;k<4;k++){
-  const R=(m=='al'?RA[i]*(1+.00403*(T-20)):(o.cond=='f'?(RF[i]||RC[i]*1.02):RC[i])*(1+.00393*(T-20)))/1000*(m=='al'&&o.cond=='f'?1.05:1);
-  z=(o.ph==1?2:Math.sqrt(3))*o.L*(R*pf+X*Math.sqrt(1-pf*pf));
-  ivd=o.V*o.vd/100/z; I=Math.min(ith,ivd);
-  T=ith>0?tEff+(tmax-tEff)*(I/ith)**2:tmax;
- }
+ // هبوط الجهد بالطريقة الرسمية (مثل جداول mV/A/m بالمعايير): مقاومة السلك على أقصى حرارة تشغيل،
+ // وممانعة كاملة √(R²+X²) بدون الاعتماد على معامل القدرة
+ const X=.08/1000;
+ const R=(m=='al'?RA[i]*(1+.00403*(tmax-20)):(o.cond=='f'?(RF[i]||RC[i]*1.02):RC[i])*(1+.00393*(tmax-20)))/1000*(m=='al'&&o.cond=='f'?1.05:1);
+ const z=(o.ph==1?2:Math.sqrt(3))*o.L*Math.sqrt(R*R+X*X);
+ const ivd=o.V*o.vd/100/z, I=Math.min(ith,ivd);
  return{ith,ivd,kt,tEff,I,z};
 }
 

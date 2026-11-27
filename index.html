@@ -60,6 +60,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
 @media(max-width:640px){.hero{grid-template-columns:1fr}.hero svg{order:-1;width:130px}.kpis{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){.ins{grid-template-columns:1fr}}
 .need{margin-top:12px}
+.typ{font-size:19px;font-weight:700;min-height:54px}
 .needR{margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);font-size:16px}
 .needR b{font-size:20px}
 .needR .ok{color:var(--ok);font-weight:700}.needR .bad{color:var(--bad);font-weight:700}
@@ -75,7 +76,15 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
   <button type="button" id="mCu" aria-pressed="true">نحاس</button>
   <button type="button" id="mAl" aria-pressed="false">ألمنيوم</button>
  </div>
- <div class="ins">
+ <label for="typ">نوع السلك</label>
+ <select id="typ" class="typ">
+  <optgroup label="سلك"><option value="one">سنكل — خط واحد</option></optgroup>
+  <optgroup label="فلكس (مرن)"><option value="flex2">فلكس — خطين</option><option value="flex3">فلكس — 3 خطوط</option><option value="flex4">فلكس — 4 خطوط</option><option value="flex5">فلكس — 5 خطوط</option><option value="flex7">فلكس — 7 خطوط</option></optgroup>
+  <optgroup label="سيمنز"><option value="nym2">سيمنز — خطين</option><option value="nym3">سيمنز — 3 خطوط</option></optgroup>
+  <optgroup label="كيبل"><option value="cab2" selected>كيبل — خطين</option><option value="cab3">كيبل — 3 خطوط</option><option value="cab4">كيبل — 4 خطوط (ثري فيز)</option></optgroup>
+ </select>
+ <div class="hint" id="typH"></div>
+ <div class="ins" style="margin-top:12px">
   <div><label for="sz">قياس السلك (ملم²)</label><select id="sz"></select></div>
   <div><label for="len">الطول (متر)</label><input id="len" type="number" inputmode="decimal" min="1" value="50"></div>
  </div>
@@ -111,7 +120,6 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
  <details>
   <summary>إعدادات إضافية (اختياري)</summary>
   <div class="grid">
-   <div><label for="typ">نوع الكيبل</label><select id="typ"><option value="twin">سنكل — سلكين (حار + بارد) 220V</option><option value="four">ثري فيز — 3 حار + بارد 380V</option><option value="one">سلك مفرد — خط واحد 220V</option></select></div>
    <div><label for="tmp" id="tmpL">حرارة الجو (°م)</label><input id="tmp" type="number" inputmode="decimal" value="40"><div class="hint">40 = داخل البيوت والجدران بالصيف. 50 لسطح أو مكان مكشوف بالظل</div></div>
    <div><label class="chk"><input id="sun" type="checkbox"> ممدود تحت الشمس المباشرة</label><div class="hint">يضيف حوالي 15°م على حرارة السلك</div></div>
    <div><label for="how">طريقة التمديد</label><select id="how"><option value="air">على الجدار / بالهواء</option><option value="pipe">داخل بوري</option><option value="soil">مدفون بالأرض</option></select></div>
@@ -148,12 +156,29 @@ const $=id=>document.getElementById(id);
 const f=(x,d=1)=>isFinite(x)?(+x).toLocaleString('en-US',{maximumFractionDigits:d}):'–';
 const lerp=(t,T)=>{if(t<=T[0][0])return T[0][1];for(let i=1;i<T.length;i++)if(t<=T[i][0]){const[a,b]=T[i-1],[c,d]=T[i];return b+(d-b)*(t-a)/(c-a)}return 0};
 let mat='cu';
+// [طور، أسلاك محملة، فلكس، عدد القلوب، الوصف]
+const TY={one:[1,2,0,1,'سلك مفرد. الرجوع (البارد) سلك ثاني بنفس القياس.'],
+ flex2:[1,2,1,2,'فلكس مرن حار + بارد. يتحمل أقل شوية من السلك الصلب.'],
+ flex3:[1,2,1,3,'فلكس حار + بارد + أرضي. الأرضي ما يشيل حمل.'],
+ flex4:[3,3,1,4,'فلكس ثري فيز: 3 حار + بارد. الرقم تيار كل طور.'],
+ flex5:[3,3,1,5,'فلكس ثري فيز: 3 حار + بارد + أرضي. الرقم تيار كل طور.'],
+ flex7:[1,7,1,7,'فلكس 7 خطوط (للتحكم). كل الخطوط محملة فيتحمل أقل؛ القيمة تقريبية.'],
+ nym2:[1,2,0,2,'سيمنز حار + بارد، للتمديدات الثابتة.'],
+ nym3:[1,2,0,3,'سيمنز حار + بارد + أرضي. الأرضي ما يشيل حمل.'],
+ cab2:[1,2,0,2,'كيبل حار + بارد.'],
+ cab3:[1,2,0,3,'كيبل حار + بارد + أرضي. الأرضي ما يشيل حمل.'],
+ cab4:[3,3,0,4,'كيبل ثري فيز: 3 حار + بارد. الرقم تيار كل طور.']};
+// الفلكس الصغير حسب جداول الأسلاك المرنة (BS 7671 4F3A) للقياسات 0.5–4، وفوكها ≈ 90% من الكيبل
+const FX={1:[3,6,10,16,25,32],3:[3,6,10,16,20,25]};
 
 function calc(i,o,m){
  if(m=='al'&&!RA[i])return null;
  let base;
  if(o.how=='soil')base=D[o.ins][o.ph][i]*(m=='al'?.77:1);
  else base=(m=='al'?(o.ins=='pvc'?AC[o.ph][i]:C.xlpe[o.ph][i]*.78):C[o.ins][o.ph][i])*(o.how=='pipe'?(o.typ=='one'?.89:.85):1);
+ const ty=TY[o.typ];
+ if(ty[2]&&o.how!='soil'){const k=[0,1,2,3,4,5].indexOf(i);base=(i<=5&&o.ins=='pvc'&&m=='cu'?FX[o.ph][i]*(o.how=='pipe'?.85:1):base*.9);}
+ if(ty[1]==7)base*=.62;
  const tEff=o.how=='soil'?o.t:o.t+(o.sun?15:0);
  const kt=lerp(tEff,(o.how=='soil'?TG:TA)[o.ins]);
  const ith=base*kt, tmax=o.ins=='pvc'?70:90;
@@ -179,13 +204,14 @@ const ids=['sz','len','need','typ','tmp','sun','how','ins','vd'];
 $('needR').addEventListener('click',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i!=null){$('sz').value=i;run()}});
 function run(){
  const typ=$('typ').value;
- const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:typ=='four'?3:1,ins:$('ins').value,how:$('how').value,
+ const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:TY[typ][0],ins:$('ins').value,how:$('how').value,
   t:+$('tmp').value||0,sun:$('sun').checked&&$('how').value!='soil',vd:Math.max(.5,+$('vd').value||5)};
  o.V=o.ph==1?220:380;
+ $('typH').textContent=TY[typ][4]+(o.ph==3?' (380V)':' (220V)');
  $('tmpL').textContent=o.how=='soil'?'حرارة التربة (°م)':'حرارة الجو (°م)';
  document.body.classList.toggle('al',mat=='al');
  $('mCu').setAttribute('aria-pressed',mat=='cu');$('mAl').setAttribute('aria-pressed',mat=='al');
- try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc4',JSON.stringify(s))}catch(e){}
+ try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc5',JSON.stringify(s))}catch(e){}
 
  const r=calc(o.i,o,mat); if(!r)return;
  const I=r.I, dv=I*r.z, Ve=o.V-dv;
@@ -206,15 +232,17 @@ function run(){
  }else nr.hidden=true;
  $('why').textContent=`${mat=='cu'?'نحاس':'ألمنيوم'} ${S[o.i]} ملم² بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`;
 
- const pos={one:[[100,100]],twin:[[58,100],[142,100]],four:[[64,64],[136,64],[64,136],[136,136]]}[typ];
- const col={one:['#8b5a2b'],twin:['#8b5a2b','#2f6fb3'],four:['#8b5a2b','#111','#8d9399','#2f6fb3']}[typ];
- const rm={one:66,twin:34,four:28}[typ], rc=rm*(.35+.65*Math.sqrt(S[o.i]/630)), g=mat=='cu'?'g1':'g2';
+ const nc=TY[typ][3];
+ const pos=nc==1?[[100,100]]:nc==2?[[58,100],[142,100]]:nc==7?[[100,100],...[0,1,2,3,4,5].map(k=>[100+48*Math.cos(k*Math.PI/3),100+48*Math.sin(k*Math.PI/3)])]
+  :[...Array(nc)].map((_,k)=>[100+44*Math.cos(-Math.PI/2+k*2*Math.PI/nc),100+44*Math.sin(-Math.PI/2+k*2*Math.PI/nc)]);
+ const col={1:['#8b5a2b'],2:['#8b5a2b','#2f6fb3'],3:['#8b5a2b','#2f6fb3','#3e9a3e'],4:['#8b5a2b','#111','#8d9399','#2f6fb3'],5:['#8b5a2b','#111','#8d9399','#2f6fb3','#3e9a3e'],7:['#111','#555','#111','#555','#111','#555','#111']}[nc];
+ const rm={1:66,2:34,3:30,4:28,5:24,7:20}[nc], rc=rm*(.35+.65*Math.sqrt(S[o.i]/630)), g=mat=='cu'?'g1':'g2';
  $('cores').innerHTML=pos.map((p,j)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${(rc*1.2+5).toFixed(1)}" fill="${col[j]}"/><circle cx="${p[0]}" cy="${p[1]}" r="${rc.toFixed(1)}" fill="url(#${g})"/>`).join('');
 
  $('all').innerHTML=S.map((s,i)=>{const a=calc(i,o,'cu'),b=calc(i,o,'al');return`<tr class="${i==o.i?'sel':''}"><td>${s} ملم²</td><td class="n">${f(a.I,1)} A</td><td class="n">${b?f(b.I,1)+' A':'—'}</td></tr>`}).join('');
 }
 
-try{const s=JSON.parse(localStorage.getItem('ampCalc4')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
+try{const s=JSON.parse(localStorage.getItem('ampCalc5')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
 if(!$('sz').options.length)fillSizes();
 $('mCu').addEventListener('click',()=>{mat='cu';fillSizes();run()});
 $('mAl').addEventListener('click',()=>{mat='al';fillSizes();run()});

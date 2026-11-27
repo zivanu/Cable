@@ -101,11 +101,11 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
  <div class="hero">
   <div>
    <div class="lbl">يتحمل ويوصل صافي</div>
-   <div class="big"><span id="rI">0</span><small>أمبير</small></div>
+   <div class="big"><span id="rI">0</span><small id="rIu">أمبير</small></div>
    <div class="lim" id="rLim"></div>
    <div class="kpis">
     <div><b id="rV">–</b><span>الجهد الواصل</span></div>
-    <div><b id="rP">–</b><span>القدرة الواصلة</span></div>
+    <div><b id="rP">–</b><span id="rPl">القدرة الواصلة</span></div>
     <div><b id="rB">–</b><span>قاطع مناسب</span></div>
    </div>
   </div>
@@ -236,7 +236,9 @@ function run(){
  $('rLim').textContent=r.ith<=0?'الحرارة أعلى من تحمل العازل':r.ith<=r.ivd?'محدود بحرارة السلك':'محدود بطول السلك';
  $('rV').textContent=f(o.ph==3?Ve/Math.sqrt(3):Ve,0)+' V'+(o.ph==3?' لكل خط':'');
  $('rP').textContent=f(P,1)+' kW';
- $('rB').textContent=br?br+' A':'–';
+ $('rIu').textContent=o.ph==3?'أمبير لكل خط':'أمبير';
+ $('rPl').textContent=o.ph==3?'القدرة الكلية (3 خطوط)':'القدرة الواصلة';
+ $('rB').textContent=br?br+' A'+(o.ph==3?' × 3':''):'–';
  const need=+$('need').value, nr=$('needR');
  if(need>0){
   const mn=S.findIndex((s,i)=>{const q=calc(i,o,mat);return q&&q.I>=need});

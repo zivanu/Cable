@@ -59,6 +59,11 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
 .note{font-size:14px;color:var(--mute)}
 @media(max-width:640px){.hero{grid-template-columns:1fr}.hero svg{order:-1;width:130px}.kpis{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){.ins{grid-template-columns:1fr}}
+.need{margin-top:12px}
+.needR{margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--card);border:1.5px solid var(--line);font-size:16px}
+.needR b{font-size:20px}
+.needR .ok{color:var(--ok);font-weight:700}.needR .bad{color:var(--bad);font-weight:700}
+.needR button{font:inherit;font-size:15px;min-height:40px;margin-top:8px;padding:4px 14px;border-radius:10px;border:0;background:var(--m1);color:#fff;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.hero{transition:none}}
 </style>
 </head>
@@ -73,6 +78,11 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
  <div class="ins">
   <div><label for="sz">قياس السلك (ملم²)</label><select id="sz"></select></div>
   <div><label for="len">الطول (متر)</label><input id="len" type="number" inputmode="decimal" min="1" value="50"></div>
+ </div>
+ <div class="need">
+  <label for="need">حملك بالأمبير (اختياري)</label>
+  <input id="need" type="number" inputmode="decimal" min="0" placeholder="اكتب حملك ونطلعلك أصغر سلك يكفي">
+  <div id="needR" class="needR" hidden></div>
  </div>
 
  <div class="hero">
@@ -165,7 +175,8 @@ function fillSizes(){
  let v=isNaN(cur)?4:cur; if(mat=='al'&&!RA[v])v=4; $('sz').value=v;
 }
 
-const ids=['sz','len','typ','tmp','sun','how','ins','vd'];
+const ids=['sz','len','need','typ','tmp','sun','how','ins','vd'];
+$('needR').addEventListener('click',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i!=null){$('sz').value=i;run()}});
 function run(){
  const typ=$('typ').value;
  const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:typ=='four'?3:1,ins:$('ins').value,how:$('how').value,
@@ -185,6 +196,14 @@ function run(){
  $('rV').textContent=f(Ve,0)+' V';
  $('rP').textContent=f(P,1)+' kW';
  $('rB').textContent=br?br+' A':'–';
+ const need=+$('need').value, nr=$('needR');
+ if(need>0){
+  const mn=S.findIndex((s,i)=>{const q=calc(i,o,mat);return q&&q.I>=need});
+  const nm=mat=='cu'?'نحاس':'ألمنيوم';
+  let h=I>=need?`<span class="ok">✓ السلك الحالي (${S[o.i]} ملم²) يكفي حملك</span><br>`:`<span class="bad">✗ السلك الحالي (${S[o.i]} ملم²) ما يكفي ${f(need,1)} أمبير</span><br>`;
+  h+=mn>=0?`أصغر سلك ${nm} يكفي ${f(need,1)} أمبير على ${f(o.L,0)} متر: <b>${S[mn]} ملم²</b>`+(mn!=o.i?`<br><button type="button" data-i="${mn}">اختار ${S[mn]} ملم²</button>`:''):'ماكو قياس منفرد يكفي، استخدم كيبلين بالتوازي أو قلل الطول.';
+  nr.innerHTML=h; nr.hidden=false;
+ }else nr.hidden=true;
  $('why').textContent=`${mat=='cu'?'نحاس':'ألمنيوم'} ${S[o.i]} ملم² بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`;
 
  const pos={one:[[100,100]],twin:[[58,100],[142,100]],four:[[64,64],[136,64],[64,136],[136,136]]}[typ];

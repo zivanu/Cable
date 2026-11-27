@@ -143,6 +143,8 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
 <script>
 {
 const S=[0.5,0.75,1,1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300,400,500,630];
+// مقاومة الموصل الشعري (Class 5) من جدول GCCI رقم 2؛ فوق 70 ملم² ≈ 2% أعلى من الستراند
+const RF=[39,26,19.5,13.3,7.98,4.95,3.30,1.91,1.21,0.780,0.554,0.386,0.272];
 const RC=[36,24.5,18.1,12.1,7.41,4.61,3.08,1.83,1.15,0.727,0.524,0.387,0.268,0.193,0.153,0.124,0.0991,0.0754,0.0601,0.047,0.0366,0.0283];
 const RA=[0,0,0,0,11.8,7.41,4.94,3.08,1.91,1.2,0.868,0.641,0.443,0.32,0.253,0.206,0.164,0.125,0.1,0.0778,0.0605,0.0469];
 const C={pvc:{1:[3,6,10,19.5,27,36,46,63,85,112,138,168,213,258,299,344,392,461,530,619,714,829],3:[3,6,10,17.5,24,32,41,57,76,96,119,144,184,223,259,299,341,403,464,541,625,723]},
@@ -189,7 +191,7 @@ function calc(i,o,m){
  const X=.08/1000, pf=.85;
  let T=tmax,z,ivd,I;
  for(let k=0;k<4;k++){
-  const R=(m=='al'?RA[i]*(1+.00403*(T-20)):RC[i]*(1+.00393*(T-20)))/1000*(o.cond=='f'?1.07:1);
+  const R=(m=='al'?RA[i]*(1+.00403*(T-20)):(o.cond=='f'?(RF[i]||RC[i]*1.02):RC[i])*(1+.00393*(T-20)))/1000*(m=='al'&&o.cond=='f'?1.05:1);
   z=(o.ph==1?2:Math.sqrt(3))*o.L*(R*pf+X*Math.sqrt(1-pf*pf));
   ivd=o.V*o.vd/100/z; I=Math.min(ith,ivd);
   T=ith>0?tEff+(tmax-tEff)*(I/ith)**2:tmax;
@@ -222,7 +224,8 @@ function run(){
  const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:TY[typ][0],cond:$('cond').value,ins:bt==90?'xlpe':bt==70?'pvc':$('ins').value,how:$('how').value,
   t:+$('tmp').value||0,sun:$('sun').checked&&$('how').value!='soil',vd:Math.max(.5,+$('vd').value||5)};
  o.V=o.ph==1?220:380;
- $('typH').textContent=TY[typ][4]+(o.ph==3?' (3 × 220V)':' (220V)');
+ const gc=($('brand').options[$('brand').value]||{}).textContent||'';
+ $('typH').textContent=TY[typ][4]+(o.ph==3?' (3 × 220V)':' (220V)')+(gc.includes('GCCI')&&/^cab|^nym/.test(typ)&&(S[o.i]<1.5||S[o.i]>25)?' ⚠ كيبل GCCI ينصنع من 1.5 إلى 25 ملم² فقط.':'');
  $('tmpL').textContent=o.how=='soil'?'حرارة التربة (°م)':'حرارة الجو (°م)';
  document.body.classList.toggle('al',mat=='al');
  $('mCu').setAttribute('aria-pressed',mat=='cu');$('mAl').setAttribute('aria-pressed',mat=='al');

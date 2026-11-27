@@ -95,7 +95,11 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
   <optgroup label="كيبل"><option value="cab2" selected>كيبل — خطين (حار + بارد)</option><option value="cab4">كيبل — 4 خطوط (3 حار + بارد)</option></optgroup>
  </select>
  <div class="hint" id="typH"></div>
- <div class="ins" style="margin-top:12px">
+ <div class="ins" id="alRow" style="margin-top:12px" hidden>
+  <div><label for="org">المنشأ</label><select id="org"><option value="tr">ظفيرة تركي</option><option value="sa">ظفيرة سعودي</option><option value="cn">ظفيرة صيني</option></select></div>
+  <div id="cnBox"><label for="cnp">المقطع الحقيقي من المكتوب %</label><input id="cnp" type="number" inputmode="decimal" min="20" max="100" value="60"></div>
+ </div>
+ <div class="ins" id="bcRow" style="margin-top:12px">
   <div><label for="brand">الماركة</label><select id="brand"></select></div>
   <div><label for="cond">نوع الموصل</label><select id="cond"><option value="s">ستراند</option><option value="f">شعري</option></select></div>
  </div>
@@ -146,7 +150,7 @@ tr.sel td{background:color-mix(in srgb,var(--m1) 18%,transparent);font-weight:70
 
  <details>
   <summary>كل القياسات لنفس الطول</summary>
-  <div class="scroll"><table><thead><tr><th>القياس</th><th class="n">نحاس</th><th class="n">ألمنيوم</th></tr></thead><tbody id="all"></tbody></table></div>
+  <div class="scroll"><table><thead><tr><th>القياس</th><th class="n" id="allH">نحاس</th></tr></thead><tbody id="all"></tbody></table></div>
   <p class="note">حسب جداول IEC 60364-5-52 ومقاومة الموصل من IEC 60228. القياسات 0.5 و0.75 و1 ملم² قيمها للأسلاك المرنة، و400 فما فوق قيمها تقريبية. الألمنيوم ما ينصنع بقياس أصغر من 2.5 ملم². الحساب لسلك أو كيبل واحد مو ملتصق بكيبلات ثانية، وهو تقدير ما يغني عن مراجعة مهندس كهرباء بالأعمال الكبيرة.</p>
  </details>
  <p class="why" style="text-align:center;margin-top:22px"><a href="https://zivanu.com" style="color:inherit">← كل برامج الكهربجي برو</a></p>
@@ -174,6 +178,10 @@ const $=id=>document.getElementById(id);
 const f=(x,d=1)=>isFinite(x)?(+x).toLocaleString('en-US',{maximumFractionDigits:d}):'–';
 const lerp=(t,T)=>{if(t<=T[0][0])return T[0][1];for(let i=1;i<T.length;i++)if(t<=T[i][0]){const[a,b]=T[i-1],[c,d]=T[i];return b+(d-b)*(t-a)/(c-a)}return 0};
 let mat='cu';
+// الظفيرة (تويست كيبل) ألمنيوم XLPE حسب NF C 33-209: الأمبير بالهواء على 30°م بدون شمس، والمقاومة على 20°م
+const ALS=[16,25,35,50,70,95], ALA=[72,107,132,165,205,240], ALR=[1.91,1.20,0.868,0.641,0.443,0.320];
+const SZ=()=>mat=='al'?ALS:S;
+const lbl=(i,ph)=>{if(mat!='al')return S[i]+' ملم²';const s=ALS[i];return ph==3?(s>=70?'3×'+s+'+54.6':'4×'+s):'2×'+s;};
 // [طور، أسلاك محملة، فلكس، عدد القلوب، الوصف]
 const TY={one:[1,2,0,1,'سلك مفرد. الرجوع (البارد) سلك ثاني بنفس القياس.'],
  flex2:[1,2,1,2,'فلكس مرن حار + بارد. يتحمل أقل شوية من السلك الصلب.'],
@@ -184,12 +192,27 @@ const TY={one:[1,2,0,1,'سلك مفرد. الرجوع (البارد) سلك ثا
  nym2:[1,2,0,2,'سيمنز حار + بارد، للتمديدات الثابتة.'],
  nym3:[1,2,0,3,'سيمنز حار + بارد + أرضي. الأرضي ما يشيل حمل.'],
  cab2:[1,2,0,2,'كيبل حار + بارد.'],
- cab4:[3,3,0,4,'كيبل ثري فيز: 3 حار + بارد. الرقم تيار كل خط.']};
+ cab4:[3,3,0,4,'كيبل ثري فيز: 3 حار + بارد. الرقم تيار كل خط.'],
+ abc2:[1,2,0,2,'ظفيرة ألمنيوم معلّقة بالهواء، عازل XLPE.'],
+ abc4:[3,3,0,4,'ظفيرة ثري فيز: 3 حار + بارد. الرقم تيار كل فيز.']};
 // الفلكس الصغير حسب جداول الأسلاك المرنة (BS 7671 4F3A) للقياسات 0.5–4، وفوكها ≈ 90% من الكيبل
 const FX={1:[3,6,10,16,25,32],3:[3,6,10,16,20,25]};
 
 function calc(i,o,m){
- if(m=='al'&&!RA[i])return null;
+ if(m=='al'){
+  if(i<0||i>=ALS.length||(o.ph==1&&ALS[i]>50))return null;
+  // الصيني: المقطع الحقيقي أقل من المكتوب، فنحسب الأمبير على المقطع الحقيقي (log-log بين قيم الجدول) والمقاومة تزيد بنفس النسبة
+  const k=o.org=='cn'?o.cnp/100:1, A=ALS[i]*k;
+  let a0;
+  if(k==1)a0=ALA[i];
+  else{let j=ALS.findIndex(x=>x>=A);if(j<=0)j=1;const x1=Math.log(ALS[j-1]),x2=Math.log(ALS[j]),y1=Math.log(ALA[j-1]),y2=Math.log(ALA[j]);a0=Math.exp(y1+(y2-y1)*(Math.log(A)-x1)/(x2-x1));}
+  const tEff=o.t+(o.sun?15:0), kt=lerp(tEff,TA.xlpe), ith=a0*kt;
+  // هبوط الجهد مثل جداول مصنعي الظفيرة (NF C 33-209): مقاومة على 90°م، معامل قدرة 0.8، ممانعة 0.1 أوم/كم
+  const R=ALR[i]/k*(1+.00403*70)/1000, X=.1/1000;
+  const z=(o.ph==1?2:Math.sqrt(3))*o.L*(R*.8+X*.6);
+  const ivd=o.V*o.vd/100/z;
+  return{ith,ivd,kt,tEff,I:Math.min(ith,ivd),z,real:k<1?A:0};
+ }
  let base;
  if(o.how=='soil')base=D[o.ins][o.ph][i]*(m=='al'?.77:1);
  else base=(m=='al'?(o.ins=='pvc'?AC[o.ph][i]:C.xlpe[o.ph][i]*.78):C[o.ins][o.ph][i])*(o.how=='pipe'?(o.typ=='one'?.89:.85):1);
@@ -208,13 +231,30 @@ function calc(i,o,m){
  return{ith,ivd,kt,tEff,I,z};
 }
 
+const CU_TYPES=$('typ').innerHTML;
+const AL_TYPES='<option value="abc2">ظفيرة — خطين (حار + بارد)</option><option value="abc4" selected>ظفيرة — 4 خطوط (3 حار + بارد)</option>';
+let typeMat='';
+function setTypes(){
+ if(typeMat==mat)return; const prev=$('typ').value;
+ $('typ').innerHTML=mat=='al'?AL_TYPES:CU_TYPES; typeMat=mat;
+ if(TY[prev]&&[...$('typ').options].some(x=>x.value==prev))$('typ').value=prev;
+ else $('typ').value=mat=='al'?'abc4':'cab2';
+}
+let sizeKey='';
 function fillSizes(){
+ setTypes();
+ if(!TY[$('typ').value]||![...$('typ').options].some(x=>x.value==$('typ').value))$('typ').value=mat=='al'?'abc4':'cab2';
+ const ph=TY[$('typ').value][0], key=mat+ph;
  const cur=$('sz').options.length?+$('sz').value:NaN;
- $('sz').innerHTML=S.map((s,i)=>`<option value="${i}"${mat=='al'&&!RA[i]?' disabled':''}>${s}</option>`).join('');
- let v=isNaN(cur)?4:cur; if(mat=='al'&&!RA[v])v=4; $('sz').value=v;
+ const matChanged=sizeKey&&sizeKey[0]!=key[0];
+ if(key!=sizeKey){
+  $('sz').innerHTML=SZ().map((s,i)=>`<option value="${i}"${mat=='al'&&ph==1&&s>50?' disabled':''}>${mat=='al'?lbl(i,ph):s}</option>`).join('');
+  sizeKey=key;
+ }
+ let v=(isNaN(cur)||matChanged)?(mat=='al'?0:4):cur; if(v>=SZ().length)v=mat=='al'?0:4; if(mat=='al'&&ph==1&&ALS[v]>50)v=3; $('sz').value=v;
 }
 
-const ids=['sz','len','need','typ','brand','cond','tmp','sun','how','ins','vd'];
+const ids=['sz','len','need','typ','org','cnp','brand','cond','tmp','sun','how','ins','vd'];
 // الماركات: [الاسم، حرارة العازل] — 0 يعني يختار المستخدم العازل
 // الفنار: جدول الأمبير بكتالوجهم ما يفرّق بين العادي والحراري، فينحسب على 70°م مثل الكتالوج
 const BRD={one:[['الفنار السعودي — حراري',70],['الذهبية الأردني GCCI',70]],
@@ -229,17 +269,19 @@ function brands(){
 }
 $('needR').addEventListener('click',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i!=null){$('sz').value=i;run()}});
 function run(){
- const typ=$('typ').value; brands();
+ fillSizes(); const typ=$('typ').value; brands();
  const bt=BRD[grp(typ)][+$('brand').value||0][1];
- const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:TY[typ][0],cond:$('cond').value,ins:bt==90?'xlpe':bt==70?'pvc':$('ins').value,how:$('how').value,
-  t:+$('tmp').value||0,sun:$('sun').checked&&$('how').value!='soil',vd:Math.max(.5,+$('vd').value||5)};
+ const o={i:+$('sz').value,L:Math.max(1,+$('len').value||1),typ,ph:TY[typ][0],cond:$('cond').value,ins:bt==90?'xlpe':bt==70?'pvc':$('ins').value,how:mat=='al'?'air':$('how').value,
+  org:$('org').value,cnp:Math.min(100,Math.max(20,+$('cnp').value||60)),
+  t:+$('tmp').value||0,sun:$('sun').checked&&(mat=='al'||$('how').value!='soil'),vd:Math.max(.5,+$('vd').value||5)};
  o.V=o.ph==1?220:380;
  const gc=($('brand').options[$('brand').value]||{}).textContent||'';
- $('typH').textContent=TY[typ][4]+(o.ph==3?' (3 × 220V)':' (220V)')+(gc.includes('GCCI')&&/^cab|^nym/.test(typ)&&(S[o.i]<1.5||S[o.i]>25)?' ⚠ كيبل GCCI ينصنع من 1.5 إلى 25 ملم² فقط.':'');
+ $('typH').textContent=TY[typ][4]+(o.ph==3?' (3 × 220V)':' (220V)')+(mat=='cu'&&gc.includes('GCCI')&&/^cab|^nym/.test(typ)&&(S[o.i]<1.5||S[o.i]>25)?' ⚠ كيبل GCCI ينصنع من 1.5 إلى 25 ملم² فقط.':'');
  $('tmpL').textContent=o.how=='soil'?'حرارة التربة (°م)':'حرارة الجو (°م)';
  document.body.classList.toggle('al',mat=='al');
+ $('bcRow').hidden=mat=='al'; $('alRow').hidden=mat!='al'; $('cnBox').hidden=$('org').value!='cn';
  $('mCu').setAttribute('aria-pressed',mat=='cu');$('mAl').setAttribute('aria-pressed',mat=='al');
- try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc6',JSON.stringify(s))}catch(e){}
+ try{const s={mat};ids.forEach(k=>s[k]=k=='sun'?$(k).checked:$(k).value);localStorage.setItem('ampCalc7',JSON.stringify(s))}catch(e){}
 
  const r=calc(o.i,o,mat); if(!r)return;
  const I=r.I, dv=I*r.z, Ve=o.V-dv;
@@ -257,35 +299,36 @@ function run(){
  $('rB').textContent=br?br+' A'+(o.ph==3?' × 3':''):'–';
  const need=+$('need').value, nr=$('needR');
  if(need>0){
-  const mn=S.findIndex((s,i)=>{const q=calc(i,o,mat);return q&&q.I>=need});
-  const nm=mat=='cu'?'نحاس':'ألمنيوم';
-  let h=I>=need?`<span class="ok">✓ السلك الحالي (${S[o.i]} ملم²) يكفي حملك</span><br>`:`<span class="bad">✗ السلك الحالي (${S[o.i]} ملم²) ما يكفي ${f(need,1)} أمبير</span><br>`;
-  h+=mn>=0?`أصغر سلك ${nm} يكفي ${f(need,1)} أمبير على ${f(o.L,0)} متر: <b>${S[mn]} ملم²</b>`+(mn!=o.i?`<br><button type="button" data-i="${mn}">اختار ${S[mn]} ملم²</button>`:''):'ماكو قياس منفرد يكفي، استخدم كيبلين بالتوازي أو قلل الطول.';
+  const mn=SZ().findIndex((s,i)=>{const q=calc(i,o,mat);return q&&q.I>=need});
+  const nm=mat=='cu'?'نحاس':'ظفيرة';
+  let h=I>=need?`<span class="ok">✓ السلك الحالي (${lbl(o.i,o.ph)}) يكفي حملك</span><br>`:`<span class="bad">✗ السلك الحالي (${lbl(o.i,o.ph)}) ما يكفي ${f(need,1)} أمبير</span><br>`;
+  h+=mn>=0?`أصغر سلك ${nm} يكفي ${f(need,1)} أمبير على ${f(o.L,0)} متر: <b>${lbl(mn,o.ph)}</b>`+(mn!=o.i?`<br><button type="button" data-i="${mn}">اختار ${lbl(mn,o.ph)}</button>`:''):'ماكو قياس منفرد يكفي، استخدم كيبلين بالتوازي أو قلل الطول.';
   // الفولت الواصل لو سحبت هذا الحمل على السلك الحالي
   const p3=o.ph==3, dvN=need*r.z, vN=(o.V-dvN)/(p3?Math.sqrt(3):1), pct=dvN/o.V*100;
   const cls=pct<=o.vd?'ok':pct<=10?'mid':'bad';
-  let vl=`<div class="vline ${cls}">إذا سحبت ${f(need,1)} أمبير${p3?' على كل فيز':''} على هذا السلك (${S[o.i]} ملم² · ${f(o.L,0)} متر):<br>الفولت يوصل <b>${f(Math.max(vN,0),0)} V</b>${p3?' لكل فيز':''} — هبوط ${f(pct,1)}%`;
+  let vl=`<div class="vline ${cls}">إذا سحبت ${f(need,1)} أمبير${p3?' على كل فيز':''} على هذا السلك (${lbl(o.i,o.ph)} · ${f(o.L,0)} متر):<br>الفولت يوصل <b>${f(Math.max(vN,0),0)} V</b>${p3?' لكل فيز':''} — هبوط ${f(pct,1)}%`;
   vl+=cls=='ok'?' ✓ ضمن المسموح':cls=='mid'?' — مقبول للإنارة، ومو زين للمكيفات والمواطير':' — ⚠ يضر الأجهزة';
   if(need>r.ith)vl+=`<br>⚠ وفوكها السلك يسخن، لأن أقصى حمل حراري له ${f(r.ith,1)} أمبير`;
   vl+='</div>';
   nr.innerHTML=vl+h; nr.hidden=false;
  }else nr.hidden=true;
- $('why').textContent=`${mat=='cu'?'نحاس':'ألمنيوم'} ${S[o.i]} ملم² بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`;
+ $('why').textContent=`${mat=='cu'?'نحاس':'ظفيرة'} ${lbl(o.i,o.ph)} بطول ${f(o.L,0)} متر: بالحرارة يتحمل ${f(r.ith,1)} أمبير، وبسبب الطول أقصى تيار يوصل بهبوط جهد ${o.vd}% هو ${f(r.ivd,1)} أمبير. الأقل بينهما هو الصافي.`+(r.real?` الظفيرة الصينية حسبناها على مقطعها الحقيقي تقريباً ${f(r.real,1)} ملم².`:'');
 
  const nc=TY[typ][3];
  const pos=nc==1?[[100,100]]:nc==2?[[58,100],[142,100]]:nc==7?[[100,100],...[0,1,2,3,4,5].map(k=>[100+48*Math.cos(k*Math.PI/3),100+48*Math.sin(k*Math.PI/3)])]
   :[...Array(nc)].map((_,k)=>[100+44*Math.cos(-Math.PI/2+k*2*Math.PI/nc),100+44*Math.sin(-Math.PI/2+k*2*Math.PI/nc)]);
  const col={1:['#8b5a2b'],2:['#8b5a2b','#2f6fb3'],3:['#8b5a2b','#2f6fb3','#3e9a3e'],4:['#c62828','#f2c200','#2f6fb3','#111'],5:['#c62828','#f2c200','#2f6fb3','#111','#3e9a3e'],7:['#111','#555','#111','#555','#111','#555','#111']}[nc];
- const rm={1:66,2:34,3:30,4:28,5:24,7:20}[nc], rc=rm*(.35+.65*Math.sqrt(S[o.i]/630)), g=mat=='cu'?'g1':'g2';
- $('cores').innerHTML=pos.map((p,j)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${(rc*1.2+5).toFixed(1)}" fill="${col[j]}"/><circle cx="${p[0]}" cy="${p[1]}" r="${rc.toFixed(1)}" fill="url(#${g})"/>`).join('');
+ const rm={1:66,2:34,3:30,4:28,5:24,7:20}[nc], rc=rm*(.35+.65*Math.sqrt(SZ()[o.i]/630)), g=mat=='cu'?'g1':'g2';
+ $('cores').innerHTML=pos.map((p,j)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${(rc*1.2+5).toFixed(1)}" fill="${mat=='al'?'#151515':col[j]}"/><circle cx="${p[0]}" cy="${p[1]}" r="${rc.toFixed(1)}" fill="url(#${g})"/>`).join('');
 
- $('all').innerHTML=S.map((s,i)=>{const a=calc(i,o,'cu'),b=calc(i,o,'al');return`<tr class="${i==o.i?'sel':''}"><td>${s} ملم²</td><td class="n">${f(a.I,1)} A</td><td class="n">${b?f(b.I,1)+' A':'—'}</td></tr>`}).join('');
+ $('allH').textContent=mat=='cu'?'نحاس':'ظفيرة';
+ $('all').innerHTML=SZ().map((s,i)=>{const a=calc(i,o,mat);return`<tr class="${i==o.i?'sel':''}"><td>${lbl(i,o.ph)}</td><td class="n">${a?f(a.I,1)+' A':'—'}</td></tr>`}).join('');
 }
 
-try{const s=JSON.parse(localStorage.getItem('ampCalc6')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(!TY[$('typ').value])$('typ').value='cab2';brands();if(s.brand!=null)$('brand').value=s.brand;if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
+try{const s=JSON.parse(localStorage.getItem('ampCalc7')||'{}');if(s.mat)mat=s.mat;fillSizes();ids.forEach(k=>{if(s[k]!=null){if(k=='sun')$(k).checked=s[k];else $(k).value=s[k]}});if(!TY[$('typ').value])$('typ').value=mat=='al'?'abc4':'cab2';brands();if(s.brand!=null)$('brand').value=s.brand;if(mat=='al'&&!RA[+$('sz').value])$('sz').value=4}catch(e){fillSizes()}
 if(!$('sz').options.length)fillSizes();
-$('mCu').addEventListener('click',()=>{mat='cu';fillSizes();run()});
-$('mAl').addEventListener('click',()=>{mat='al';fillSizes();run()});
+$('mCu').addEventListener('click',()=>{if(mat!='cu'){mat='cu';$('sun').checked=false;}fillSizes();run()});
+$('mAl').addEventListener('click',()=>{if(mat!='al'){mat='al';$('sun').checked=true;}fillSizes();run()});
 ids.forEach(k=>$(k).addEventListener('input',run));
 run();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
